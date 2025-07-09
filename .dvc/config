@@ -4,4 +4,3 @@
     url = s3://cs7642bucket
     endpointurl = https://ca830b1abadb266e3480c21464ab3a51.r2.cloudflarestorage.com
     access_key_id = 2e02b72f2a5107ac93e42c0121ecf062
-    secret_access_key = 4157abaea64972146e35f4a270113fea68966fb2533aee0302bd52199a80824b
