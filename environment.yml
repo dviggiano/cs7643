@@ -1,0 +1,29 @@
+# conda env update -f environment.yml --prune
+
+name: musdb_env
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Core
+  - python=3.9
+  - ffmpeg
+  - ipykernel
+  - numpy
+  - librosa
+  - pytorch           # will pull the CUDA CPU build by default
+  - torchaudio
+
+  # Data-versioning
+  - dvc               # main CLI
+  - dvc-s3            # enables the S3/R2 remote
+  - boto3             # used under the hood by dvc-s3
+
+  # Pip-only packages
+  - pip
+  - pip:
+      - musdb
+      - stempeg
+      - soundfile
+      - matplotlib
