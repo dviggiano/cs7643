@@ -1,0 +1,15 @@
+Run these in the command line
+
+# 1️. Clone the Git repo
+git https://github.com/dviggiano/cs7643.git
+cd cs7642
+
+# 2️. Build & activate the conda environment
+conda env create -f environment.yml
+conda activate musdb_env
+
+# 3️. Supply your secret key
+export AWS_SECRET_ACCESS_KEY=⟨enter-the-key-here⟩
+
+# 4. Fetch the tensor data via DVC
+dvc pull

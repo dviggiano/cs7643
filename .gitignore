@@ -1,2 +1,10 @@
-data/musdb18hq
+# ignore all the raw spectrogram blobs…
+data/musdb18hq/spectrograms/**
+
+# …but do NOT ignore the DVC pointer file
+!data/musdb18hq/spectrograms.dvc
+
+# (Optionally, allow all .dvc files anywhere)
+!*.dvc
+
 .dvc/cache/
