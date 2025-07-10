@@ -2,7 +2,7 @@ Run these in the command line
 
 # 1️. Clone the Git repo
 git https://github.com/dviggiano/cs7643.git
-cd cs7642
+cd cs7643
 
 # 2️. Build & activate the conda environment
 conda env create -f environment.yml
