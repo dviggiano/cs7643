@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+# TODO: change architecture?
+
 class CNN(nn.Module):
     def __init__(self, n_sources=4, in_channels=1):
         """
