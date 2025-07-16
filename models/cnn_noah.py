@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-# TODO: change architecture?
-
 class CNN(nn.Module):
     def __init__(self, n_sources=4, in_channels=1):
         """
@@ -11,8 +9,6 @@ class CNN(nn.Module):
             in_channels (int): Number of input channels (1 for magnitude spectrogram)
         """
         super().__init__()
-        self.n_sources = n_sources
-        self.in_channels = in_channels
 
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels, 32, kernel_size=3, padding=1),

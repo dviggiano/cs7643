@@ -10,9 +10,6 @@ class UNet(nn.Module):
             base_channels (int): Number of channels for the first conv layer
         """
         super().__init__()
-        self.n_sources = n_sources
-        self.in_channels = in_channels
-        self.base_channels = base_channels
 
         # Encoder (Downsampling)
         self.enc1 = nn.Sequential(
@@ -62,6 +59,21 @@ class UNet(nn.Module):
         # Final output layer
         self.final = nn.Conv2d(base_channels, n_sources, 1)
 
+    def center_crop(self, enc_feat, dec_feat):
+        """
+        Center-crop enc_feat to match the spatial size of dec_feat
+        Args:
+            enc_feat: [B, C, H1, W1]
+            dec_feat: [B, C, H2, W2]
+        Returns:
+            Cropped enc_feat: [B, C, H2, W2]
+        """
+        _, _, h1, w1 = enc_feat.shape
+        _, _, h2, w2 = dec_feat.shape
+        dh = (h1 - h2) // 2
+        dw = (w1 - w2) // 2
+        return enc_feat[:, :, dh:dh+h2, dw:dw+w2]
+
     def forward(self, x):
         """
         Args:
@@ -79,15 +91,18 @@ class UNet(nn.Module):
 
         # Decoder with skip connections
         d3 = self.up3(b)
-        d3 = torch.cat([d3, e3], dim=1)
+        e3_cropped = self.center_crop(e3, d3)
+        d3 = torch.cat([d3, e3_cropped], dim=1)
         d3 = self.dec3(d3)
 
         d2 = self.up2(d3)
-        d2 = torch.cat([d2, e2], dim=1)
+        e2_cropped = self.center_crop(e2, d2)
+        d2 = torch.cat([d2, e2_cropped], dim=1)
         d2 = self.dec2(d2)
 
         d1 = self.up1(d2)
-        d1 = torch.cat([d1, e1], dim=1)
+        e1_cropped = self.center_crop(e1, d1)
+        d1 = torch.cat([d1, e1_cropped], dim=1)
         d1 = self.dec1(d1)
 
         out = self.final(d1)
