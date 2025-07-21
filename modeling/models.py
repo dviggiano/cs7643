@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-#################### Econder/Decoder CNN ####################
+#################### Encoder/Decoder CNN ####################
 
 
 class VanillaCNN(nn.Module):
@@ -66,7 +66,7 @@ class SimpleUNet(nn.Module):
         )
 
         # Temporal smoothing
-        self.smooth = nn.Conv2d(1, 1, (1,5), padding=(0,2))
+        self.smooth = nn.Conv2d(output_channels, output_channels, (1,5), padding=(0,2))
 
 
     def forward(self, x):
@@ -86,5 +86,5 @@ class SimpleUNet(nn.Module):
         x_cat = torch.cat([x_enc, x_up], dim=1)  # (B, base_filters*2, F, T)
 
         out = self.dec_conv(x_cat)     # (B, output_channels, F, T)
-        mask = self.smooth(out)
-        return torch.sigmoid(mask)
+        out = self.smooth(out)
+        return torch.sigmoid(out)

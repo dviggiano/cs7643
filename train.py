@@ -7,7 +7,8 @@ import datetime
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset, Dataset
+import random
 from torch.utils.tensorboard import SummaryWriter
 from modeling.dataset import SpectrogramDataset
 from modeling.models import VanillaCNN, SimpleUNet
@@ -16,6 +17,17 @@ from tqdm import tqdm
 def load_config(path):
     with open(path, 'r') as f:
         return yaml.safe_load(f)
+
+class VocalsOnlyDataset(Dataset):
+    def __init__(self, subset):
+        self.subset = subset
+
+    def __len__(self):
+        return len(self.subset)
+
+    def __getitem__(self, idx):
+        mix, target = self.subset[idx]
+        return mix, target[3].unsqueeze(0)
 
 def main(config):
     # --- device setup ---
@@ -29,18 +41,36 @@ def main(config):
     os.makedirs(run_dir, exist_ok=True)
 
     writer = SummaryWriter(log_dir=run_dir)
-    print(f"[INFO] TensorBoard events → {run_dir}")
+    print(f"[INFO] TensorBoard events -> {run_dir}")
 
     csv_path = os.path.join(run_dir, config['logging']['csv_filename'])
-    print(f"[INFO] CSV log        → {csv_path}")
+    print(f"[INFO] CSV log -> {csv_path}")
     if not os.path.exists(csv_path):
         with open(csv_path, 'w') as f:
             f.write('epoch,train_loss,val_loss\n')
 
     # --- dataset & dataloader setup ---
     ds_cfg = config['data']
-    train_ds = SpectrogramDataset(ds_cfg['root_dir'], subset='train')
-    val_ds   = SpectrogramDataset(ds_cfg['root_dir'], subset='test')
+    full_train_ds = SpectrogramDataset(ds_cfg['root_dir'], subset='train')
+    full_val_ds   = SpectrogramDataset(ds_cfg['root_dir'], subset='test')
+
+    # train_ds = SpectrogramDataset(ds_cfg['root_dir'], subset='train')
+    # val_ds   = SpectrogramDataset(ds_cfg['root_dir'], subset='test')
+
+    sample_perc = 1.0
+
+    train_subset = Subset(full_train_ds, random.sample(range(len(full_train_ds)), int(sample_perc * len(full_train_ds))))
+    val_subset   = Subset(full_val_ds, random.sample(range(len(full_val_ds)), int(sample_perc * len(full_val_ds))))
+
+    train_ds = train_subset
+    val_ds   = val_subset
+
+    # train_ds = VocalsOnlyDataset(train_subset)
+    # val_ds   = VocalsOnlyDataset(val_subset)
+
+
+    # train_ds = [(mix, target[3].unsqueeze(0)) for mix, target in train_subset]
+    # val_ds   = [(mix, target[3].unsqueeze(0)) for mix, target in val_subset]
 
     batch_size = config['train']['batch_size']
     train_loader = DataLoader(
