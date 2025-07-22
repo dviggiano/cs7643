@@ -6,7 +6,7 @@ device: cuda
 train:
   batch_size:    8         # 128 to expand capacity
   learning_rate: 0.01  # 0.1 / 0.01     # tune to optimize
-  weight_decay:  0.0
+  weight_decay:  1e-5
   epochs:        10         # bump up for full training
   milestones:    [2,4]     # for MultiStepLR
   warmup_epochs: 0
@@ -14,7 +14,7 @@ train:
   gamma:         0.5
 
 network:
-  model:           SimpleUNet   # VanillaCNN or SimpleUNet
+  model:           VanillaCNN   # VanillaCNN or SimpleUNet
   in_channels:     1
   base_filters:    4            # keep small for quick tests
   output_channels: 4
