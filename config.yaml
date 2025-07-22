@@ -1,7 +1,7 @@
 # config.yaml
 
 # Device (optional; defaults to CPU)
-device: cpu
+device: cuda
 
 train:
   batch_size:    8         # 128 to expand capacity
