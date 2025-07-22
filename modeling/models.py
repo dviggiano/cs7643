@@ -18,16 +18,20 @@ class VanillaCNN(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels, base_filters, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2),
             nn.Conv2d(base_filters, base_filters, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2),
             nn.MaxPool2d(kernel_size=2, stride=2)  # Downsample
         )
         # decode: upsample -> ReLU -> output conv
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(base_filters, base_filters, kernel_size=2, stride=2),  # Upsample
             nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2),
             nn.Conv2d(base_filters, base_filters, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2),
             nn.Conv2d(base_filters, output_channels, kernel_size=3, stride=1, padding=1)
         )
 
@@ -52,8 +56,10 @@ class SimpleUNet(nn.Module):
         self.enc_conv = nn.Sequential(
             nn.Conv2d(in_channels, base_filters, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2),
             nn.Conv2d(base_filters, base_filters, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2)
         )
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
@@ -62,6 +68,7 @@ class SimpleUNet(nn.Module):
         self.dec_conv = nn.Sequential(
             nn.Conv2d(base_filters * 2, base_filters, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.2),
             nn.Conv2d(base_filters, output_channels, kernel_size=3, stride=1, padding=1)
         )
 
