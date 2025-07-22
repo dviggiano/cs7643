@@ -9,13 +9,13 @@ import numpy as np
 import soundfile as sf
 from modeling.models import VanillaCNN, SimpleUNet
 
-# def si_sdr(ref, est, eps=1e-8):
-#     ref = ref.astype(np.float64)
-#     est = est.astype(np.float64)
-#     alpha  = np.dot(est, ref) / (np.dot(ref, ref) + eps)
-#     e_true = alpha * ref
-#     e_res  = est - e_true
-#     return 10 * np.log10((np.sum(e_true**2) + eps) / (np.sum(e_res**2) + eps))
+def si_sdr(ref, est, eps=1e-8):
+    ref = ref.astype(np.float64)
+    est = est.astype(np.float64)
+    alpha  = np.dot(est, ref) / (np.dot(ref, ref) + eps)
+    e_true = alpha * ref
+    e_res  = est - e_true
+    return 10 * np.log10((np.sum(e_true**2) + eps) / (np.sum(e_res**2) + eps))
 
 def sdr(ref, est, eps=1e-8):
     ref = ref.astype(np.float64)
@@ -40,7 +40,7 @@ def load_model(cfg, device):
         raise ValueError(f"Unknown model: {net_cfg['model']}")
 
     ckpt_path = cfg.get('checkpoint_path', 'checkpoints/best_model.pth')
-    ckpt = torch.load(ckpt_path, map_location='cpu')
+    ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=True)
     model.load_state_dict(ckpt['model_state'])
     return model.to(device).eval()
 
@@ -76,7 +76,8 @@ def main():
             hop_length=HOP_LEN,
             win_length=WIN_LEN,
             window=window,
-            return_complex=True
+            return_complex=True,
+            center = False
         )
 
         mag = spec.abs().unsqueeze(0).unsqueeze(0)
@@ -105,13 +106,15 @@ def main():
         elif vocals_gt.shape[0] < wav_est.shape[0]:
             vocals_gt = np.pad(vocals_gt, (0, wav_est.shape[0] - vocals_gt.shape[0]))
 
-        score = sdr(vocals_gt, wav_est)
-        all_scores.append(score)
+        score_sisdr = si_sdr(vocals_gt, wav_est)
+        score_sdr = sdr(vocals_gt, wav_est)
+        all_scores.append(score_sdr)
 
-        print(f"{os.path.basename(song_dir)} | vocals: {score:6.2f} dB")
+        print(f"{os.path.basename(song_dir)} | SI-SDR: {score_sisdr:6.2f} dB | SDR: {score_sdr:6.2f} dB")
 
     print("\n=== Average SDR for Vocals ===")
     print(f"  vocals: {np.mean(all_scores):6.2f} dB")
+
 
 if __name__ == "__main__":
     main()

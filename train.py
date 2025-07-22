@@ -57,7 +57,7 @@ def main(config):
     # train_ds = SpectrogramDataset(ds_cfg['root_dir'], subset='train')
     # val_ds   = SpectrogramDataset(ds_cfg['root_dir'], subset='test')
 
-    sample_perc = 1.0
+    sample_perc = 1
 
     train_subset = Subset(full_train_ds, random.sample(range(len(full_train_ds)), int(sample_perc * len(full_train_ds))))
     val_subset   = Subset(full_val_ds, random.sample(range(len(full_val_ds)), int(sample_perc * len(full_val_ds))))
@@ -125,11 +125,16 @@ def main(config):
         momentum=float(train_cfg['momentum']),
         weight_decay=float(train_cfg['weight_decay'])
     )
-    scheduler = optim.lr_scheduler.MultiStepLR(
-        optimizer,
-        milestones=train_cfg['milestones'],
-        gamma=train_cfg['gamma']
-    )
+    scheduler_type = train_cfg.get('scheduler', 'multistep')
+
+    if scheduler_type == 'cosine':
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=train_cfg['epochs'])
+    else:  # default to MultiStepLR
+        scheduler = optim.lr_scheduler.MultiStepLR(
+            optimizer,
+            milestones=train_cfg['milestones'],
+            gamma=train_cfg['gamma']
+        )
 
     # --- training loop ---
     best_val = float('inf')

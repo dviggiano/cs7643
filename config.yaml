@@ -6,8 +6,8 @@ device: cpu
 train:
   batch_size:    8         # 128 to expand capacity
   learning_rate: 0.01  # 0.1 / 0.01     # tune to optimize
-  weight_decay:  0.0
-  epochs:        4         # bump up for full training
+  weight_decay:  0.00001
+  epochs:        1         # bump up for full training
   milestones:    [2,4]     # for MultiStepLR
   warmup_epochs: 0
   momentum:      0.9
@@ -38,4 +38,4 @@ logging:
 
 # Scheduler settings (read by code via train.milestones and gamma)
 scheduler:
-  type: MultiStepLR
+  type: cosine #  use [cosine , MultiStepLR]
