@@ -31,7 +31,7 @@ class VocalsOnlyDataset(Dataset):
 
 def main(config):
     # --- device setup ---
-    device = torch.device(config.get('device', 'cpu'))
+    device = torch.device(config.get('device', 'cuda'))
 
     # --- run directory & logging setup ---
     model_name = config['network']['model']
