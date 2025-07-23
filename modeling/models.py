@@ -39,52 +39,101 @@ class VanillaCNN(nn.Module):
 
 
 #################### U NET ####################
-
 class SimpleUNet(nn.Module):
     """
-    Lightweight U-Net with encoder block, decoder block, and a skip connection.
-    mix (1xFxT) -> 4 stems (4xFxT)
+    Symmetrical U-Net with 3 encoder/decoder levels and skip connections.
+    Input:  (B, 1, F, T)
+    Output: (B, 4, F, T)
     """
-    def __init__(self, in_channels=1, base_filters=32, output_channels=4):
+    def __init__(self, in_channels=1, base_filters=32, output_channels=4, kernel_size=7):
         super().__init__()
+        padding = kernel_size // 2  # preserve spatial dimensions
 
-        # Encoder
-        self.enc_conv = nn.Sequential(
-            nn.Conv2d(in_channels, base_filters, kernel_size=3, stride=1, padding=1),
+        # --- Encoder blocks ---
+        self.enc1 = nn.Sequential(
+            nn.Conv2d(in_channels, base_filters, kernel_size, padding=padding),
             nn.ReLU(inplace=True),
-            nn.Conv2d(base_filters, base_filters, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(base_filters, base_filters, kernel_size, padding=padding),
             nn.ReLU(inplace=True)
         )
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.pool1 = nn.MaxPool2d(2)
 
-        # Decoder
-        self.upconv = nn.ConvTranspose2d(base_filters, base_filters, kernel_size=2, stride=2)
-        self.dec_conv = nn.Sequential(
-            nn.Conv2d(base_filters * 2, base_filters, kernel_size=3, stride=1, padding=1),
+        self.enc2 = nn.Sequential(
+            nn.Conv2d(base_filters, base_filters * 2, kernel_size, padding=padding),
             nn.ReLU(inplace=True),
-            nn.Conv2d(base_filters, output_channels, kernel_size=3, stride=1, padding=1)
+            nn.Conv2d(base_filters * 2, base_filters * 2, kernel_size, padding=padding),
+            nn.ReLU(inplace=True)
+        )
+        self.pool2 = nn.MaxPool2d(2)
+
+        self.enc3 = nn.Sequential(
+            nn.Conv2d(base_filters * 2, base_filters * 4, kernel_size, padding=padding),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(base_filters * 4, base_filters * 4, kernel_size, padding=padding),
+            nn.ReLU(inplace=True)
+        )
+        self.pool3 = nn.MaxPool2d(2)
+
+        # --- Bottleneck ---
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(base_filters * 4, base_filters * 8, kernel_size, padding=padding),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(base_filters * 8, base_filters * 8, kernel_size, padding=padding),
+            nn.ReLU(inplace=True)
         )
 
-        # Temporal smoothing
-        self.smooth = nn.Conv2d(output_channels, output_channels, (1,5), padding=(0,2))
+        # --- Decoder blocks ---
+        self.upconv3 = nn.ConvTranspose2d(base_filters * 8, base_filters * 4, kernel_size=2, stride=2)
+        self.dec3 = nn.Sequential(
+            nn.Conv2d(base_filters * 8, base_filters * 4, kernel_size, padding=padding),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(base_filters * 4, base_filters * 4, kernel_size, padding=padding),
+            nn.ReLU(inplace=True)
+        )
 
+        self.upconv2 = nn.ConvTranspose2d(base_filters * 4, base_filters * 2, kernel_size=2, stride=2)
+        self.dec2 = nn.Sequential(
+            nn.Conv2d(base_filters * 4, base_filters * 2, kernel_size, padding=padding),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(base_filters * 2, base_filters * 2, kernel_size, padding=padding),
+            nn.ReLU(inplace=True)
+        )
+
+        self.upconv1 = nn.ConvTranspose2d(base_filters * 2, base_filters, kernel_size=2, stride=2)
+        self.dec1 = nn.Sequential(
+            nn.Conv2d(base_filters * 2, base_filters, kernel_size, padding=padding),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(base_filters, base_filters, kernel_size, padding=padding),
+            nn.ReLU(inplace=True)
+        )
+
+        # --- Output ---
+        self.out_conv = nn.Conv2d(base_filters, output_channels, kernel_size=kernel_size, padding=padding)
 
     def forward(self, x):
         # Encoder
-        x_enc = self.enc_conv(x)       # (B, base_filters, F, T)
-        x_down = self.pool(x_enc)      # (B, base_filters, F/2, T/2)
+        x1 = self.enc1(x)
+        x2 = self.enc2(self.pool1(x1))
+        x3 = self.enc3(self.pool2(x2))
+        x4 = self.bottleneck(self.pool3(x3))
 
         # Decoder
-        x_up = self.upconv(x_down)     # (B, base_filters, F, T)
+        x = self.upconv3(x4)
+        x = F.pad(x, self._get_pad(x, x3))
+        x = self.dec3(torch.cat([x, x3], dim=1))
 
-        # Match shapes in case of odd dims (center crop encoder output)
-        if x_up.shape[-2:] != x_enc.shape[-2:]:
-            x_up = F.pad(x_up, (0, x_enc.shape[-1] - x_up.shape[-1],
-                                0, x_enc.shape[-2] - x_up.shape[-2]))
+        x = self.upconv2(x)
+        x = F.pad(x, self._get_pad(x, x2))
+        x = self.dec2(torch.cat([x, x2], dim=1))
 
-        # Concatenate skip connection
-        x_cat = torch.cat([x_enc, x_up], dim=1)  # (B, base_filters*2, F, T)
+        x = self.upconv1(x)
+        x = F.pad(x, self._get_pad(x, x1))
+        x = self.dec1(torch.cat([x, x1], dim=1))
 
-        out = self.dec_conv(x_cat)     # (B, output_channels, F, T)
-        out = self.smooth(out)
-        return torch.sigmoid(out)
+        return torch.sigmoid(self.out_conv(x))
+
+    def _get_pad(self, upsampled, skip):
+        """Returns padding tuple to match shape (right, left, bottom, top)."""
+        diffY = skip.size(2) - upsampled.size(2)
+        diffX = skip.size(3) - upsampled.size(3)
+        return [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2]
