@@ -1,0 +1,41 @@
+# config.yaml
+
+# Device (optional; defaults to CPU)
+device: cpu
+
+train:
+  batch_size:    8         # 128 to expand capacity
+  learning_rate: 0.01  # 0.1 / 0.01     # tune to optimize
+  weight_decay:  0.00001
+  epochs:        1         # bump up for full training
+  milestones:    [2,4]     # for MultiStepLR
+  warmup_epochs: 0
+  momentum:      0.9
+  gamma:         0.5
+
+network:
+  model:           SimpleUNet   # VanillaCNN or SimpleUNet
+  in_channels:     1
+  base_filters:    4            # keep small for quick tests
+  output_channels: 4
+
+data:
+  root_dir:    data/musdb18hq/spectrograms
+  save_best:   true
+  num_workers: 6
+  pin_memory:  true
+  persistent_workers: false
+
+loss:
+  type: MSE      # or L1
+
+logging:
+  base_dir:     runs/debug
+  csv_filename: training_log.csv
+
+# (Optional) checkpoint directory; defaults to 'checkpoints' if omitted
+# checkpoint_dir: checkpoints
+
+# Scheduler settings (read by code via train.milestones and gamma)
+scheduler:
+  type: cosine #  use [cosine , MultiStepLR]

@@ -12,8 +12,13 @@ dependencies:
   - ipykernel
   - numpy
   - librosa
-  - pytorch           # will pull the CUDA CPU build by default
+  - pytorch           # will pull the CUDA or CPU build as appropriate
   - torchaudio
+  - tensorboard
+
+  # Config + utils
+  - pyyaml            # for reading config.yaml
+  - tqdm              # for training/validation progress bars
 
   # Data-versioning
   - dvc               # main CLI

@@ -4,7 +4,6 @@ import numpy as np
 import librosa
 import torch
 
-
 # Configuration
 input_root = Path('data/musdb18hq')
 output_root = input_root / 'spectrograms'
@@ -17,12 +16,11 @@ CLIP_SAMPLES = SR * DURATION_S
 STEP_SAMPLES = CLIP_SAMPLES # for now will do no overlap // 2  # 50% overlap
 
 # STFT parameters, changing them moves dataset from 15gb to 60gb
-N_FFT = 512
+N_FFT = 512 # Frequency bins
 # N_FFT = 1024
 HOP_LENGTH = 512
 WIN_LENGTH = 512
 # WIN_LENGTH = 1024
-
 
 def safe_load(path: Path):
     """
@@ -41,7 +39,6 @@ def safe_load(path: Path):
         except Exception as e2:
             print(f"Error: could not load {path} at all, skipping: {e2}")
             return None, None
-
 
 def process_audio_file(audio_path: Path, out_dir: Path):
     """
@@ -75,7 +72,6 @@ def process_audio_file(audio_path: Path, out_dir: Path):
         tensor = torch.from_numpy(log_mag)
         torch.save(tensor, clip_folder / fname)
 
-
 def main():
     output_root.mkdir(parents=True, exist_ok=True)
 
@@ -103,7 +99,6 @@ def main():
                 if stem.name == 'mixture.wav':
                     continue
                 process_audio_file(stem, track_out)
-
 
 if __name__ == '__main__':
     main()
